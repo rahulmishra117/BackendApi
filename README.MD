@@ -1,3 +1,11 @@
+# Command For Starting the Application
+    npm i 
+    npm start
+
+# Docker command for Building aplication
+    docker build -t sample/backendapi:v0.1 .
+    docker run 
+
 # Details Of API
 
 ## Register and login end point with their response
