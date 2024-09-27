@@ -3,8 +3,9 @@
     npm start
 
 # Docker command for Building aplication
+    docker build -t <docker images>
     docker build -t sample/backendapi:v0.1 .
-    docker run 
+    docker run -d <d:port><h:port> <imagename>
 
 # Details Of API
 
