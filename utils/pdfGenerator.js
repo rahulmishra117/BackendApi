@@ -1,33 +1,18 @@
-const fs = require('fs');
-const path = require('path');
 const pdf = require('html-pdf');
 
 async function generatePDF(products) {
     const htmlContent = generateHTMLFromProducts(products);
 
-    // Define the path to the invoices directory
-    const invoicesDir = path.join(__dirname, 'invoices');
-
-    // Ensure the invoices directory exists
-    if (!fs.existsSync(invoicesDir)) {
-        fs.mkdirSync(invoicesDir);
-    }
-
-    // Define the file path for the PDF
-    const filePath = path.join(invoicesDir, `quotation-${Date.now()}.pdf`);
-
     // Options for PDF generation
     const options = { format: 'A4' };
 
-    // Create the PDF
+    // Create the PDF directly to a Buffer to avoid disk I/O and leaks
     return new Promise((resolve, reject) => {
-        pdf.create(htmlContent, options).toFile(filePath, (err, res) => {
+        pdf.create(htmlContent, options).toBuffer((err, buffer) => {
             if (err) {
-                reject(err);
-            } else {
-                console.log(`PDF generated at: ${res.filename}`);
-                resolve(fs.readFileSync(filePath)); // Return the PDF buffer
+                return reject(err);
             }
+            resolve(buffer);
         });
     });
 }
@@ -36,14 +21,16 @@ async function generatePDF(products) {
 function generateHTMLFromProducts(products) {
     let grandTotal = 0;
     const rows = products.map(product => {
-        const totalAmount = product.qty * product.rate;
+        const qtyValue = Number(product.qty) || 0;
+        const rateValue = Number(product.rate) || 0;
+        const totalAmount = qtyValue * rateValue;
         grandTotal += totalAmount;
-        // HTML and CSS for invoice PDF 
+        // HTML and CSS for invoice PDF (escape user-provided content)
         return `
             <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">${product.name}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${product.qty}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">₹${product.rate.toFixed(2)}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${escapeHtml(product.name)}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${qtyValue}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">₹${rateValue.toFixed(2)}</td>
                 <td style="padding: 8px; border: 1px solid #ddd;">₹${totalAmount.toFixed(2)}</td>
             </tr>
         `;
@@ -129,6 +116,18 @@ function generateHTMLFromProducts(products) {
             </body>
         </html>
     `;
+}
+
+function escapeHtml(unsafe) {
+    if (unsafe === undefined || unsafe === null) {
+        return '';
+    }
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 module.exports = { generatePDF };
