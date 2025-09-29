@@ -9,7 +9,12 @@ const verifyToken = (req, res, next) => {
 
     const token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
 
-    jwt.verify(token,"abc", (err, decoded) => {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+        return res.status(500).send('Server misconfiguration');
+    }
+
+    jwt.verify(token, jwtSecret, (err, decoded) => {
         if (err) {
             return res.status(401).send('Invalid Token');
         }
